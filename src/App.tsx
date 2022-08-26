@@ -76,7 +76,7 @@ const RegisterPage: FC = () => {
     } | null>(null);
 
     const register = async () => {
-        if (!wallet) {
+        if (!wallet || !wallet.connected) {
             return;
         }
 
@@ -103,7 +103,7 @@ const RegisterPage: FC = () => {
 
     useEffect(() => {
         const getBalances = async () => {
-            if (!wallet) {
+            if (!wallet || !wallet.connected) {
                 return;
             }
 
@@ -195,26 +195,62 @@ const HomePage: FC = () => {
 
     useEffect(() => {
         const getUser = async () => {
-            if (!wallet) {
+            if (!wallet || !wallet.connected) {
                 return;
             }
 
             if (user === null) {
+                const toastId = toast.loading("Logging in to dspace...");
                 // check if user account is registered
-                const registered = await (DSpace as any).isRegistered(
-                    connection,
-                    wallet as any
-                );
-                if (!registered) {
-                    console.warn("Not registered, send to registration page");
-                    navigate("/register");
-                    return;
+
+                try {
+                    const registered = await (DSpace as any).isRegistered(
+                        connection,
+                        wallet as any
+                    );
+                    if (!registered) {
+                        console.warn(
+                            "Not registered, send to registration page"
+                        );
+                        toast.error(
+                            "You aren't registered for dspace yet. Please make an account.",
+                            {
+                                id: toastId,
+                            }
+                        );
+                        navigate("/register");
+                        return;
+                    }
+                } catch (err) {
+                    toast.error(
+                        "Error occured when searching for account: " +
+                            (err as any).toString(),
+                        {
+                            id: toastId,
+                        }
+                    );
                 }
 
                 // if registered, we can create the client
-                const dspace = await DSpace.create(connection, wallet as any);
-                const usrInfo = await dspace.getUserInfo();
-                setUser(usrInfo);
+                try {
+                    const dspace = await DSpace.create(
+                        connection,
+                        wallet as any
+                    );
+                    const usrInfo = await dspace.getUserInfo();
+                    toast.success("Logged in successfully!", {
+                        id: toastId,
+                    });
+                    setUser(usrInfo);
+                } catch (err) {
+                    toast.error(
+                        "Error occured when logging in: " +
+                            (err as any).toString(),
+                        {
+                            id: toastId,
+                        }
+                    );
+                }
             }
         };
 
