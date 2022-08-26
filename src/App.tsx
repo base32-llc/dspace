@@ -236,7 +236,7 @@ const HomePage: FC = () => {
 
                             setSubmittingUsername(true);
                             const toastId = toast.loading(
-                                "Changing username..."
+                                "Changing username to " + newUsername + "..."
                             );
 
                             try {
@@ -245,7 +245,11 @@ const HomePage: FC = () => {
                                     wallet as any
                                 );
                                 await dspace.setUsername(newUsername);
-                                setUser(await dspace.getUserInfo());
+                                if (user) {
+                                    const newUser = { ...user };
+                                    newUser.username = newUsername;
+                                    setUser(newUser);
+                                }
                                 setSubmittingUsername(false);
                                 setNewUsernameOpen(false);
                                 toast.success(
