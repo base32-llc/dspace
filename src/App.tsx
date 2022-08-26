@@ -22,6 +22,7 @@ import { Navbar } from "./components/Navbar";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { Modal } from "./components/Modal";
 import { sleep } from "./utils/sleep";
+import toast, { Toaster } from "react-hot-toast";
 
 require("@solana/wallet-adapter-react-ui/styles.css");
 
@@ -32,6 +33,7 @@ export const connection = new Connection("https://ssc-dao.genesysgo.net/", {
 const App: FC = () => {
     return (
         <Context>
+            <Toaster position="bottom-left" />
             <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/register" element={<RegisterPage />} />
@@ -78,12 +80,25 @@ const RegisterPage: FC = () => {
             return;
         }
 
+        const toastId = toast.loading("Setting up dspace account...");
         setRegistering(true);
         // if registered, we can create the client
-        const dspace = await DSpace.create(connection, wallet as any);
-        const usrInfo = await dspace.getUserInfo();
-        setUser(usrInfo);
-        navigate("/");
+        try {
+            const dspace = await DSpace.create(connection, wallet as any);
+            const usrInfo = await dspace.getUserInfo();
+            toast.success("Account set up successfully!", {
+                id: toastId,
+            });
+            setUser(usrInfo);
+            navigate("/");
+        } catch (err) {
+            toast.error(
+                "Error setting up dspace account: " + (err as any).toString(),
+                {
+                    id: toastId,
+                }
+            );
+        }
     };
 
     useEffect(() => {
@@ -117,8 +132,9 @@ const RegisterPage: FC = () => {
                         )}
                         {balances && balances.SHDW === 0 && (
                             <small className="mb-5 text-red-700">
-                                Warning: You need both SOL and SHDW tokens to
-                                use this application. Purchase some SHDW tokens{" "}
+                                You need both SOL and SHDW tokens to use this
+                                application. You will not be able to continue
+                                until you have some. Purchase some SHDW tokens{" "}
                                 <a
                                     className="font-medium text-blue-600 underline pointer"
                                     href="https://jup.ag/swap/SOL-SHDW"
@@ -130,21 +146,27 @@ const RegisterPage: FC = () => {
                             </small>
                         )}
                         <h1 className="text-xl mt-5">
-                            Looks like you don't have an account yet. Let's set
-                            up your dspace account. This will take two
-                            transactions.
+                            Welcome to dspace! Let's set up your account. This
+                            will take two transactions.
                         </h1>
 
                         <form
                             onSubmit={(e) => {
                                 e.preventDefault();
+                                if (balances.SOL === 0 || balances.SHDW === 0) {
+                                    return;
+                                }
                                 register();
                             }}
                         >
                             <button
                                 type="submit"
                                 style={{ float: "right" }}
-                                className={`loading bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded mt-5 ${
+                                className={`${
+                                    (balances.SOL === 0 ||
+                                        balances.SHDW === 0) &&
+                                    "cursor-not-allowed"
+                                } loading bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded mt-5 ${
                                     registering ? "cursor-not-allowed" : ""
                                 }`}
                             >
@@ -207,17 +229,41 @@ const HomePage: FC = () => {
                     <form
                         onSubmit={async (e) => {
                             e.preventDefault();
+
+                            if (submittingUsername) {
+                                return;
+                            }
+
                             setSubmittingUsername(true);
-                            const dspace = await DSpace.create(
-                                connection,
-                                wallet as any
+                            const toastId = toast.loading(
+                                "Changing username..."
                             );
-                            await dspace.setUsername(newUsername);
-                            // lol, takes a while to propagate or something
-                            await sleep(3000);
-                            setUser(await dspace.getUserInfo());
-                            setSubmittingUsername(false);
-                            setNewUsernameOpen(false);
+
+                            try {
+                                const dspace = await DSpace.create(
+                                    connection,
+                                    wallet as any
+                                );
+                                await dspace.setUsername(newUsername);
+                                setUser(await dspace.getUserInfo());
+                                setSubmittingUsername(false);
+                                setNewUsernameOpen(false);
+                                toast.success(
+                                    "Username changed successfully!",
+                                    {
+                                        id: toastId,
+                                    }
+                                );
+                            } catch (err) {
+                                setSubmittingUsername(false);
+                                toast.error(
+                                    "Error changing username: " +
+                                        (err as any).toString(),
+                                    {
+                                        id: toastId,
+                                    }
+                                );
+                            }
                         }}
                     >
                         <label
@@ -242,7 +288,7 @@ const HomePage: FC = () => {
                             You can change your username for dspace to whatever
                             you desire. Usernames over 32 characters will be
                             truncated when displayed. This can take a little
-                            while.{" "}
+                            while to propagate through the network.{" "}
                         </p>
                         <div className="px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                             <button
