@@ -15,7 +15,7 @@ import {
 } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl, Connection } from "@solana/web3.js";
 import React, { FC, ReactNode, useEffect, useMemo } from "react";
-import { Client as DSpace } from "dspace-js";
+import { Client as DSpace } from "@base32/dspacejs";
 import { useRecoilState } from "recoil";
 import { userState } from "./states/userState";
 
