@@ -3,7 +3,7 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
-        "@base32/dspacejs": "^0.3.8",
+        "@base32/dspacejs": "^0.3.10",
         "@solana/wallet-adapter-base": "^0.9.16",
         "@solana/wallet-adapter-react": "^0.15.18",
         "@solana/wallet-adapter-react-ui": "^0.9.16",
